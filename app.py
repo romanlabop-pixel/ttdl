@@ -4,19 +4,29 @@ import yt_dlp
 import os
 
 app = Flask(__name__)
-CORS(app)  # Important: Allows Netlify to talk to this server
+CORS(app)  # Allows Netlify to talk to this server
+
+@app.route('/', methods=['GET'])
+def home():
+    return "TikTok API is Running!"
 
 @app.route('/get-video', methods=['POST'])
 def get_video():
     url = request.form.get('url')
     if not url:
         return jsonify({'success': False, 'error': 'No URL provided'})
+    
+    # 1. User-Agent Spoofing to look like a real browser
+    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 
     ydl_opts = {
         'format': 'best',
         'quiet': True,
         'no_warnings': True,
+        'user_agent': user_agent,
+        'referer': 'https://www.tiktok.com/',
     }
+    
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -24,6 +34,7 @@ def get_video():
                 'title': info.get('title', 'Video'),
                 'thumbnail': info.get('thumbnail'),
                 'download_url': info.get('url'),
+                'author': info.get('uploader'),
                 'success': True
             })
     except Exception as e:
